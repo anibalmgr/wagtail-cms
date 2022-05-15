@@ -1,9 +1,14 @@
 {% extends "base.html" %}
 
-{% load wagtailcore_tags %}
+{% load wagtailcore_tags wagtailimages_tags%}
 
 {% block body_class %}template-homepage{% endblock %}
 
 {% block content %}
     {{ page.body|richtext }}
+
+    <a href="/blog">Go to our blog</a>
 {% endblock %}
+
+
+

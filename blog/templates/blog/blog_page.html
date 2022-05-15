@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+
+{% load wagtailcore_tags wagtailimages_tags %}
+
+{% block body_class %}template-blogpage{% endblock %}
+
+{% block content %}
+<h1>{{ page.title }}</h1>
+<p class="meta">{{ page.date }}</p>
+
+{% with categories=page.categories.all%}
+{% if categories %}
+<h3>Posted in: </h3>
+<ul>
+    {% for category in categories %}
+    <li style="display: inline">
+        {% image category.icon fill-36x36 style="vertical-align: middle" %}
+        {{ category.name }}
+    </li> {% endfor %} </ul> {% endif %} {% endwith %}
+
+{% for i in page.authors.all %}
+{% if i.username %}
+<p>By {{i.username}}</p>
+{% endif %}
+{% endfor %}
+
+
+<div class="intro">{{ page.intro }}</div>
+
+{{ page.body|richtext }}
+<div style="display: flex; gap: 2rem">
+    {% for item in page.gallery_images.all %}
+    <div>
+        {% image item.image fill-320x240 %}
+        <p>{{ item.caption }}</p>
+    </div>
+    {% endfor %}
+
+</div>
+
+<div class="tags">
+    <h3>Tags</h3>
+    <div style="display: flex; gap: 0.5rem; padding-bottom: 1rem">
+        {% for tag in page.tags.all %}
+        <a href="{% slugurl "tags" %}?tag={{ tag }}">
+            <button type="button"
+                style="border: 0; color: whitesmoke; background: #333; padding: 12px; border-radius: 4px ">
+                {{ tag }}
+            </button>
+            {% endfor %}
+    </div>
+</div>
+
+
+<p>
+    <a href="{{ page.get_parent.url }}">Return to blog</a>
+</p>
+
+{% endblock %}
