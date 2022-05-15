@@ -1,3 +1,4 @@
+from dataclasses import Field
 from django.db import models
 from pyexpat import model
 from django import forms
@@ -10,6 +11,7 @@ from wagtail.admin.edit_handlers import FieldPanel, InlinePanel, MultiFieldPanel
 from wagtail.search import index
 from wagtail.snippets.models import register_snippet
 from wagtail.images.edit_handlers import ImageChooserPanel
+from wagtail.snippets.edit_handlers import SnippetChooserPanel
 
 from modelcluster.fields import ParentalKey, ParentalManyToManyField
 from taggit.models import TaggedItemBase
@@ -38,7 +40,9 @@ class BlogPage(Page):
     date = models.DateField("Post date")
     intro = models.CharField(max_length=250)
     body = RichTextField(blank=True)
+    authors = ParentalManyToManyField('blog.BlogAuthor', blank=True)
     tags = ClusterTaggableManager(through=BlogPageTag, blank=True)
+    categories = ParentalManyToManyField('blog.BlogCategory', blank=True)
 
     def main_image(self):
         gallery_item = self.gallery_images.first()
@@ -54,8 +58,10 @@ class BlogPage(Page):
 
     content_panels = Page.content_panels + [
         MultiFieldPanel([
+            FieldPanel('authors', widget=forms.CheckboxSelectMultiple),
             FieldPanel('date'),
-            FieldPanel('tags')
+            FieldPanel('tags'),
+            FieldPanel('categories', widget=forms.CheckboxSelectMultiple),
         ], heading="Blog information"),
         FieldPanel('intro'),
         FieldPanel('body', classname="full"),
@@ -77,9 +83,38 @@ class BlogPageGalleryImage(Orderable):
     ]
 
 
+class BlogTagIndexPage(Page):
+
+    def get_context(self, request):
+
+        # Filter by tag
+        tag = request.GET.get('tag')
+        blogpages = BlogPage.objects.filter(tags__name=tag)
+
+        # Update template context
+        context = super().get_context(request)
+        context['blogpages'] = blogpages
+        return context
+
+
+class BlogAuthorsOrderable(Orderable):
+    """This allows us to select one or more blog authors from Snippets."""
+
+    page = ParentalKey(BlogPage, related_name="blog_authors")
+    author = models.ForeignKey(
+        "blog.BlogAuthor",
+        on_delete=models.CASCADE,
+    )
+
+    panels = [
+        # Use a SnippetChooserPanel because blog.BlogAuthor is registered as a snippet
+        SnippetChooserPanel("author"),
+    ]
+
+
 @register_snippet
 class BlogCategory(models.Model):
-    name = models.CharField(max_length=255)
+    name = models.CharField(max_length=300)
     icon = models.ForeignKey(
         'wagtailimages.Image', null=True, blank=True,
         on_delete=models.SET_NULL, related_name='+'
@@ -97,15 +132,27 @@ class BlogCategory(models.Model):
         verbose_name_plural = 'blog categories'
 
 
-class BlogTagIndexPage(Page):
+@register_snippet
+class BlogAuthor(models.Model):
+    """Blog author"""
 
-    def get_context(self, request):
+    username = models.CharField(max_length=50)
+    avatar = models.ForeignKey("wagtailimages.Image",
+                               on_delete=models.SET_NULL,
+                               null=True,
+                               blank=False,
+                               related_name="+",)
+    role = models.CharField(max_length=50)
 
-        # Filter by tag
-        tag = request.GET.get('tag')
-        blogpages = BlogPage.objects.filter(tags__name=tag)
+    panels = [
+        FieldPanel('username'),
+        FieldPanel('role'),
+        ImageChooserPanel('avatar')
+    ]
 
-        # Update template context
-        context = super().get_context(request)
-        context['blogpages'] = blogpages
-        return context
+    def __str__(self):
+        return self.username
+
+    class Meta:
+        verbose_name = "Author"
+        verbose_name_plural = 'Authors'

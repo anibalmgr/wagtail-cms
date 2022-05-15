@@ -8,6 +8,22 @@
 <h1>{{ page.title }}</h1>
 <p class="meta">{{ page.date }}</p>
 
+{% with categories=page.categories.all%}
+{% if categories %}
+<h3>Posted in: </h3>
+<ul>
+    {% for category in categories %}
+    <li style="display: inline">
+        {% image category.icon fill-36x36 style="vertical-align: middle" %}
+        {{ category.name }}
+    </li> {% endfor %} </ul> {% endif %} {% endwith %}
+
+{% for i in page.authors.all %}
+{% if i.username %}
+<p>By {{i.username}}</p>
+{% endif %}
+{% endfor %}
+
 
 <div class="intro">{{ page.intro }}</div>
 
