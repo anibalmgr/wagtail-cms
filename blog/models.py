@@ -1,5 +1,5 @@
-from pyexpat import model
 from django.db import models
+from pyexpat import model
 from django import forms
 from modelcluster.fields import ParentalKey
 from modelcluster.contrib.taggit import ClusterTaggableManager
@@ -38,6 +38,7 @@ class BlogPage(Page):
     date = models.DateField("Post date")
     intro = models.CharField(max_length=250)
     body = RichTextField(blank=True)
+    tags = ClusterTaggableManager(through=BlogPageTag, blank=True)
 
     def main_image(self):
         gallery_item = self.gallery_images.first()
@@ -52,7 +53,10 @@ class BlogPage(Page):
     ]
 
     content_panels = Page.content_panels + [
-        FieldPanel('date'),
+        MultiFieldPanel([
+            FieldPanel('date'),
+            FieldPanel('tags')
+        ], heading="Blog information"),
         FieldPanel('intro'),
         FieldPanel('body', classname="full"),
         InlinePanel('gallery_images', label="Gallery images"),
@@ -73,20 +77,6 @@ class BlogPageGalleryImage(Orderable):
     ]
 
 
-class BlogTagIndexPage(Page):
-
-    def get_context(self, request):
-
-        # Filter by tag
-        tag = request.GET.get('tag')
-        blogpages = BlogPage.objects.filter(tags__name=tag)
-
-        # Update template context
-        context = super().get_context(request)
-        context['blogpages'] = blogpages
-        return context
-
-
 @register_snippet
 class BlogCategory(models.Model):
     name = models.CharField(max_length=255)
@@ -105,3 +95,17 @@ class BlogCategory(models.Model):
 
     class Meta:
         verbose_name_plural = 'blog categories'
+
+
+class BlogTagIndexPage(Page):
+
+    def get_context(self, request):
+
+        # Filter by tag
+        tag = request.GET.get('tag')
+        blogpages = BlogPage.objects.filter(tags__name=tag)
+
+        # Update template context
+        context = super().get_context(request)
+        context['blogpages'] = blogpages
+        return context
